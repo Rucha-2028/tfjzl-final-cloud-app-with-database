@@ -1,5 +1,6 @@
 import sys
 from django.utils.timezone import now
+
 try:
     from django.db import models
 except Exception:
@@ -8,6 +9,7 @@ except Exception:
 
 from django.conf import settings
 import uuid
+
 
 # Instructor model
 class Instructor(models.Model):
@@ -20,6 +22,7 @@ class Instructor(models.Model):
 
     def __str__(self):
         return self.user.username
+
 
 # Learner model
 class Learner(models.Model):
@@ -46,8 +49,8 @@ class Learner(models.Model):
     social_link = models.URLField(max_length=200)
 
     def __str__(self):
-        return self.user.username + "," + \
-               self.occupation
+        return self.user.username + "," + self.occupation
+
 
 # Course model
 class Course(models.Model):
@@ -61,8 +64,8 @@ class Course(models.Model):
     is_enrolled = False
 
     def __str__(self):
-        return "Name: " + self.name + "," + \
-               "Description: " + self.description
+        return "Name: " + self.name + "," + "Description: " + self.description
+
 
 # Lesson model
 class Lesson(models.Model):
@@ -71,9 +74,10 @@ class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     content = models.TextField()
 
+
 # Enrollment model
-# <HINT> Once a user enrolled a class, an enrollment entry should be created between the user and course
-# And we could use the enrollment to track information such as exam submissions
+# Once a user enrolls in a class, an enrollment entry is created.
+# The enrollment can also track information such as exam submissions.
 class Enrollment(models.Model):
     AUDIT = 'audit'
     HONOR = 'honor'
@@ -89,27 +93,37 @@ class Enrollment(models.Model):
     mode = models.CharField(max_length=5, choices=COURSE_MODES, default=AUDIT)
     rating = models.FloatField(default=5.0)
 
+
+# Question model
 class Question(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    content = models.CharField(max_length=200)
+    question_text = models.CharField(max_length=200)
     grade = models.IntegerField(default=50)
 
     def __str__(self):
-        return "Question: " + self.content
+        return self.question_text
 
     def is_get_score(self, selected_ids):
-        all_answers = self.choice_set.filter(is_correct=True).count()
-        selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
-        if all_answers == selected_correct:
-            return True
-        else:
-            return False
+        correct_ids = set(
+            self.choice_set.filter(is_correct=True).values_list('id', flat=True)
+        )
+        return correct_ids == set(selected_ids)
 
+
+# Choice model
 class Choice(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    content = models.CharField(max_length=200)
+    choice_text = models.CharField(max_length=200)
     is_correct = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.choice_text
+
+
+# Submission model
 class Submission(models.Model):
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
     choices = models.ManyToManyField(Choice)
+
+    def __str__(self):
+        return f"Submission {self.id}"
